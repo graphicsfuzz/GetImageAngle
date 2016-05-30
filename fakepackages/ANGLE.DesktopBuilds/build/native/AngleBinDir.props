@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <angle-DeviceType Condition="'$(TargetPlatformIdentifier)' == 'Windows'">Windows</angle-DeviceType>
+    <angle-DeviceType Condition="'$(TargetPlatformIdentifier)' == 'WindowsPhoneApp'">Phone</angle-DeviceType>
+    <angle-DeviceType Condition="'$(TargetPlatformIdentifier)' == 'UAP'">UAP</angle-DeviceType>
+
+    <angle-BinPath>$(MSBuildThisFileDirectory)..\..\bin\$(angle-DeviceType)\$(PlatformToolset)\$(Platform)\$(Configuration)</angle-BinPath>
+  </PropertyGroup>
+
+</Project>

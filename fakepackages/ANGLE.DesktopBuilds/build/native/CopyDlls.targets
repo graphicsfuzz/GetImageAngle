@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <Target Name="angle-CopyDlls" AfterTargets="AfterBuild">
+     <Copy SourceFiles="$(angle-BinPath)\libGLESv2.dll;$(angle-BinPath)\libEGL.dll;$(angle-BinPath)\d3dcompiler_47.dll;$(angle-BinPath)\libEGL.pdb;$(angle-BinPath)\libGLESv2.pdb" DestinationFolder="$(OutputPath)" />
+  </Target>
+
+</Project>
