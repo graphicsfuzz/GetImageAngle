@@ -12,6 +12,9 @@
 
 #include <memory>
 #include <string>
+#include <sstream>
+#include <iostream>
+#include <vector>
 
 // Enable function definitions in the GL headers below
 #define GL_GLEXT_PROTOTYPES

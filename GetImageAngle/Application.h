@@ -3,13 +3,14 @@
 #include "stdafx.h"
 
 #include "HelloTriangleRenderer.h"
+#include "CommandLineArgs.h"
 
 namespace GetImageAngle
 {
     class Application
     {
     public:
-        Application(const std::wstring& windowTitle);
+        Application(const std::wstring& windowTitle, CommandLineArgs args);
 
         int Run();
 
@@ -36,6 +37,8 @@ namespace GetImageAngle
 
         std::wstring mWindowTitle;
         bool mIsRunning;
+
+        CommandLineArgs args;
 
     };
 }

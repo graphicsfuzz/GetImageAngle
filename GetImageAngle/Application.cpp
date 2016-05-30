@@ -6,23 +6,34 @@ using namespace GetImageAngle;
 // Used to initialize our app and run it.
 int main(int argc, char **argv)
 {
-    Application app = Application(L"$safeprojectname$");
+    CommandLineArgs args;
+
+    if (!args.parse_args(argc, argv))
+    {
+        std::cerr << "Requires vertex shader and fragment shader arguments!" << std::endl;
+        return 1;
+    }
+    Application app = Application(L"GetImageAngle", args);
     return app.Run();
 }
 
-Application::Application(const std::wstring& windowTitle)
+Application::Application(const std::wstring& windowTitle, CommandLineArgs args)
     : mEglDisplay(EGL_NO_DISPLAY),
     mEglContext(EGL_NO_CONTEXT),
     mEglSurface(EGL_NO_SURFACE),
     mNativeWindow(0),
     mWindowTitle(windowTitle),
-    mIsRunning(false)
+    mIsRunning(false),
+    args(args)
 {
 }
 
 int Application::Run()
 {
-    if (!InitializeWindow(640, 480))
+    int width = 640;
+    int height = 480;
+
+    if (!InitializeWindow(width, height))
     {
         OutputDebugStringW(L"Failed to initialize the window. Exiting.");
         CleanupWindow();
@@ -37,7 +48,10 @@ int Application::Run()
         return -1;
     }
 
-    mTriangleRenderer.reset(new HelloTriangleRenderer());
+    mTriangleRenderer.reset(new HelloTriangleRenderer(
+        args,
+        width,
+        height));
     if (!mTriangleRenderer->Initialize())
     {
         OutputDebugStringW(L"Failed to initialize the triangle renderer. Exiting.");
@@ -88,7 +102,10 @@ int Application::Run()
                 break;
             }
 
-            mTriangleRenderer.reset(new HelloTriangleRenderer());
+            mTriangleRenderer.reset(new HelloTriangleRenderer(
+                args,
+                width,
+                height));
             if (!mTriangleRenderer->Initialize())
             {
                 OutputDebugStringW(L"Failed to reinitialize the triangle renderer. Exiting.");
@@ -141,8 +158,6 @@ bool Application::InitializeEGL()
         EGL_NONE,
     };
 
-    EGLConfig config = 0;
-
     // eglGetPlatformDisplayEXT is an alternative to eglGetDisplay. It allows us to specifically request D3D11 instead of D3D9.
     PFNEGLGETPLATFORMDISPLAYEXTPROC eglGetPlatformDisplayEXT = reinterpret_cast<PFNEGLGETPLATFORMDISPLAYEXTPROC>(eglGetProcAddress("eglGetPlatformDisplayEXT"));
     if (!eglGetPlatformDisplayEXT)
@@ -165,15 +180,65 @@ bool Application::InitializeEGL()
         return false;
     }
 
+    
     EGLint numConfigs;
-    if ((eglChooseConfig(mEglDisplay, configAttributes, &config, 1, &numConfigs) == EGL_FALSE) || (numConfigs == 0))
+
+    if (eglChooseConfig(mEglDisplay, configAttributes, NULL, 0, &numConfigs) == EGL_FALSE 
+        || numConfigs == 0)
     {
-        OutputDebugStringW(L"Failed to choose first EGLConfig");
+        OutputDebugStringW(L"Failed to call eglChooseConfig");
         CleanupEGL();
         return false;
     }
 
-    mEglSurface = eglCreateWindowSurface(mEglDisplay, config, mNativeWindow, surfaceAttributes);
+    std::vector<EGLConfig> configs(numConfigs, EGLConfig(0));
+
+    if ((eglChooseConfig(mEglDisplay, configAttributes, &configs[0], configs.capacity(), &numConfigs) == EGL_FALSE) || (numConfigs == 0))
+    {
+        OutputDebugStringW(L"Failed to call eglChooseConfig second time");
+        CleanupEGL();
+        return false;
+    }
+
+    EGLConfig foundConfig = 0;
+    for (EGLConfig config : configs)
+    {
+        EGLint val = -1;
+        /*if (eglGetConfigAttrib(mEglDisplay, config, EGL_ALPHA_SIZE, &val) == EGL_FALSE)
+        {
+            OutputDebugStringW(L"Failed to call eglGetConfigAttrib");
+            CleanupEGL();
+            return false;
+        }
+        if (val != 0) continue;
+
+        eglGetConfigAttrib(mEglDisplay, config, EGL_DEPTH_SIZE, &val);
+        if (val != 0) continue;
+
+        eglGetConfigAttrib(mEglDisplay, config, EGL_STENCIL_SIZE, &val);
+        if (val != 0) continue;
+
+        val = -1;*/
+        if (eglGetConfigAttrib(mEglDisplay, config, EGL_BUFFER_SIZE, &val) == EGL_FALSE)
+        {
+            OutputDebugStringW(L"Failed to call eglGetConfigAttrib");
+            CleanupEGL();
+            return false;
+        }
+        if (val != 32) continue;
+        foundConfig = config;
+        break;
+    }
+
+    if (foundConfig == 0)
+    {
+        OutputDebugStringW(L"Failed to find suitable config");
+        CleanupEGL();
+        return false;
+    }
+
+
+    mEglSurface = eglCreateWindowSurface(mEglDisplay, foundConfig, mNativeWindow, surfaceAttributes);
     if (mEglSurface == EGL_NO_SURFACE)
     {
         OutputDebugStringW(L"Failed to create EGL fullscreen surface");
@@ -188,7 +253,7 @@ bool Application::InitializeEGL()
         return false;
     }
 
-    mEglContext = eglCreateContext(mEglDisplay, config, NULL, contextAttibutes);
+    mEglContext = eglCreateContext(mEglDisplay, foundConfig, NULL, contextAttibutes);
     if (mEglContext == EGL_NO_CONTEXT)
     {
         OutputDebugStringW(L"Failed to create EGL context");
@@ -341,6 +406,7 @@ void Application::CleanupWindow()
 void Application::Step(double deltaTime, double elapsedTime)
 {
     // Logic to update your scene could go here.
+    mTriangleRenderer->Step(deltaTime, elapsedTime);
 }
 
 void Application::OnWindowSizeChanged(int width, int height)

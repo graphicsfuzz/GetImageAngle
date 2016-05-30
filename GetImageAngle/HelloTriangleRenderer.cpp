@@ -104,30 +104,20 @@ GLuint CompileProgram(const std::string &vsSource, const std::string &fsSource)
     return program;
 }
 
-HelloTriangleRenderer::HelloTriangleRenderer() :
-    mProgram(0)
+std::string LoadFile(const std::string& filePath)
 {
+    std::ifstream shdf0(filePath);
+    std::stringstream shds0;
+    shds0 << shdf0.rdbuf();
+    return shds0.str();
 }
+
 
 bool HelloTriangleRenderer::Initialize() 
 {
-    const std::string vs = STRING
-    (
-        attribute vec4 vPosition;
-        void main()
-        {
-            gl_Position = vPosition;
-        }
-    );
+    const std::string vs(LoadFile(args.vertex_shader));
 
-    const std::string fs = STRING
-    (
-        precision mediump float;
-        void main()
-        {
-            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-        }
-    );
+    const std::string fs(LoadFile(args.fragment_shader));
 
     mProgram = CompileProgram(vs, fs);
     if (!mProgram)
@@ -136,6 +126,7 @@ bool HelloTriangleRenderer::Initialize()
     }
 
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glViewport(0, 0, width, height);
 
     return true;
 }
@@ -152,24 +143,101 @@ HelloTriangleRenderer::~HelloTriangleRenderer()
 // Draws a basic triangle
 void HelloTriangleRenderer::Draw()
 {
-    GLfloat vertices[] =
+    GLfloat vertices1[] =
     {
-         0.0f,  0.5f, 0.0f,
-        -0.5f, -0.5f, 0.0f,
-         0.5f, -0.5f, 0.0f,
+        -1.0f,  1.0f,
+        -1.0f, -1.0f,
+         1.0f, -1.0f,
+    };
+
+    GLfloat vertices2[] =
+    {
+        -1.0f,  1.0f,
+         1.0f,  1.0f,
+         1.0f, -1.0f,
     };
 
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(mProgram);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+    const char* uniform_name;
+    GLint uniform_loc;
+    uniform_name = "resolution";
+    uniform_loc = glGetUniformLocation(mProgram, uniform_name);
+    if (uniform_loc != -1)
+        glUniform2f(uniform_loc, width, height);
+    uniform_name = "mouse";
+    uniform_loc = glGetUniformLocation(mProgram, uniform_name);
+    if (uniform_loc != -1)
+        glUniform2f(uniform_loc, 0.0f, 0.0f);
+    uniform_name = "injectionSwitch";
+    uniform_loc = glGetUniformLocation(mProgram, uniform_name);
+    if (uniform_loc != -1)
+        glUniform2f(uniform_loc, 0.0f, 1.0f);
+    uniform_name = "time";
+    uniform_loc = glGetUniformLocation(mProgram, uniform_name);
+    if (uniform_loc != -1)
+        glUniform1f(uniform_loc, 0.0f);
+
     glEnableVertexAttribArray(0);
 
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, vertices1);
     glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, vertices2);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+}
+
+#define OUTPUT_IMAGE_MAX_PIXEL_VAL 255
+
+
+void HelloTriangleRenderer::Step(double deltaTime, double elapsedTime)
+{
+    if (stepCountdown > 0) --stepCountdown;
+
+    if (!saved && stepCountdown == 0)
+    {
+        const int channelsOutput = 3;
+        saved = true;
+        std::vector<std::uint8_t> data(width * height * channels);
+        glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, &data[0]);
+        
+        GLenum en = glGetError();
+
+        if (en != GL_NO_ERROR)
+        {
+            std::cerr << "Error occurred when reading pixels: " << en << std::endl;
+            exit(-1);
+        }
+
+        std::ofstream output_image;
+        output_image.open(args.output);
+        output_image << "P3\n";
+        output_image << width << " " << height << "\n";
+        output_image << OUTPUT_IMAGE_MAX_PIXEL_VAL << "\n";
+        for (int h = 0; h < height; h++)
+        {
+            for (int w = 0; w < width; w++)
+            {
+                for (int c = 0; c < channelsOutput; c++)
+                {
+                    output_image << (int)(data[((height - h - 1) * width + w) *
+                        channels + c]) << " ";
+                }
+                output_image << "\n";
+            }
+        }
+        output_image.close();
+        if (args.persist)
+            printf("Press any key to exit...\n");
+        else
+            exit(0);
+    }
 }
 
 void HelloTriangleRenderer::OnWindowSizeChanged(GLsizei width, GLsizei height)
 {
-    glViewport(0, 0, width, height);
+    
 }
