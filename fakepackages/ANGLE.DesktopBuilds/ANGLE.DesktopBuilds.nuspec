@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>ANGLE.DesktopBuilds</id>
+    <version>2.1.9</version>
+    <title>ANGLE desktop builds</title>
+    <authors></authors>
+    <owners>angle,microsoft</owners>
+    <licenseUrl></licenseUrl>
+    <projectUrl></projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Runs OpenGL ES content on Windows by translating OpenGL ES API calls to DirectX API calls.</description>
+    <copyright>Copyright (C) 2002-2013 The ANGLE Project Authors. Portions Copyright (C) Microsoft Corporation.</copyright>
+    <tags>OpenGL ES GLES GLSL Direct3D graphics 3D</tags>
+  </metadata>
+</package>
