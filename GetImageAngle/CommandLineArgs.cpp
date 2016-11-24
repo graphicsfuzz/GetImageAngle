@@ -32,15 +32,17 @@ bool CommandLineArgs::parse_args(int argc, char* argv[])
                 output = argv[++i];
                 continue;
             }
+            else if (!curr_arg.compare("--vertex")) {
+                vertex_shader = argv[++i];
+                continue;
+            }
             printf("Unknown argument %s\n", curr_arg.c_str());
             continue;
         }
-        if (vertex_shader == "")
-            vertex_shader = curr_arg;
-        else if (fragment_shader == "")
+        if (fragment_shader == "")
             fragment_shader = curr_arg;
         else printf("Ignoring extra argument %s\n", curr_arg.c_str());
     }
-    return (vertex_shader != "" && fragment_shader != "");
+    return (fragment_shader != "");
 }
 

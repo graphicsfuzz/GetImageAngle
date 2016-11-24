@@ -4,6 +4,11 @@
 
 #include "CommandLineArgs.h"
 
+#define COMPILE_ERROR_EXIT_CODE 101
+#define LINK_ERROR_EXIT_CODE 102
+#define RENDER_ERROR_EXIT_CODE 103
+#define PNG_ERROR_EXIT_CODE 104
+
 namespace GetImageAngle
 {
     class HelloTriangleRenderer

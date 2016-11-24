@@ -15,7 +15,7 @@ namespace GetImageAngle
 
         std::string vertex_shader;
         std::string fragment_shader;
-        std::string output = "output.ppm";
+        std::string output = "output.png";
 
         bool CommandLineArgs::parse_args(int argc, char* argv[]);
     };

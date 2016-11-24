@@ -13,6 +13,7 @@
 
 #include "stdafx.h"
 #include "HelloTriangleRenderer.h"
+#include "lodepng.h"
 
 // These are used by the shader compilation methods.
 #include <vector>
@@ -71,6 +72,7 @@ GLuint CompileProgram(const std::string &vsSource, const std::string &fsSource)
         glDeleteShader(fs);
         glDeleteShader(vs);
         glDeleteProgram(program);
+        exit(COMPILE_ERROR_EXIT_CODE);
         return 0;
     }
 
@@ -98,6 +100,7 @@ GLuint CompileProgram(const std::string &vsSource, const std::string &fsSource)
         OutputDebugStringW(errorMessage.c_str());
 
         glDeleteProgram(program);
+        exit(LINK_ERROR_EXIT_CODE);
         return 0;
     }
 
@@ -115,7 +118,15 @@ std::string LoadFile(const std::string& filePath)
 
 bool HelloTriangleRenderer::Initialize() 
 {
-    const std::string vs(LoadFile(args.vertex_shader));
+    std::string vs;
+    if (args.vertex_shader == "")
+    {
+        vs = "attribute vec2 coord2d;\nvarying vec2 surfacePosition;\nvoid main(void) {\ngl_Position = vec4(coord2d, 0.0, 1.0);\nsurfacePosition = coord2d;\n}";
+    }
+    else
+    {
+        vs = LoadFile(args.vertex_shader);
+    }
 
     const std::string fs(LoadFile(args.fragment_shader));
 
@@ -199,41 +210,25 @@ void HelloTriangleRenderer::Step(double deltaTime, double elapsedTime)
 
     if (!saved && stepCountdown == 0)
     {
-        const int channelsOutput = 3;
-        saved = true;
+
         std::vector<std::uint8_t> data(width * height * channels);
         glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, &data[0]);
-        
-        GLenum en = glGetError();
-
-        if (en != GL_NO_ERROR)
-        {
-            std::cerr << "Error occurred when reading pixels: " << en << std::endl;
-            exit(-1);
-        }
-
-        std::ofstream output_image;
-        output_image.open(args.output);
-        output_image << "P3\n";
-        output_image << width << " " << height << "\n";
-        output_image << OUTPUT_IMAGE_MAX_PIXEL_VAL << "\n";
+        std::vector<std::uint8_t> flipped_data(width * height * channels);
         for (int h = 0; h < height; h++)
+            for (int col = 0; col < width * channels; col++)
+                flipped_data[h * width * channels + col] =
+                data[(height - h - 1) * width * channels + col];
+        unsigned png_error = lodepng::encode(args.output, flipped_data, width, height);
+        if (png_error)
         {
-            for (int w = 0; w < width; w++)
-            {
-                for (int c = 0; c < channelsOutput; c++)
-                {
-                    output_image << (int)(data[((height - h - 1) * width + w) *
-                        channels + c]) << " ";
-                }
-                output_image << "\n";
-            }
+            printf("Error producing PNG file: %s", lodepng_error_text(png_error));
+            exit(PNG_ERROR_EXIT_CODE);
         }
-        output_image.close();
         if (args.persist)
             printf("Press any key to exit...\n");
         else
             exit(0);
+        
     }
 }
 
